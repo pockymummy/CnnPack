@@ -8,6 +8,7 @@ Most of my changes are in
 train_batch.py
 test_3channels.py
 test_grayscale_color_transfer.py
+models.py
 
 
 
