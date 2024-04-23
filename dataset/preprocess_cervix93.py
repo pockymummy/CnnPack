@@ -8,9 +8,9 @@ Y-> Y_EDF (for each group of X_stacks)
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('--Z', choices=[9], type=int, default=9)
+parser.add_argument('--Z', choices=[9], type=int, default=5)
 parser.add_argument('--folds', type=int, choices=range(5),default=5)
-parser.add_argument('--img_size', type=int, choices=[224,512,640,960],default=640)
+parser.add_argument('--img_size', type=int, choices=[224,512,640,960],default=512)
 args = parser.parse_args()
 
 
@@ -23,6 +23,7 @@ import os
 import _pickle as cPickle
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.model_selection import StratifiedKFold
+from joblib import dump, load
 
 
 #Save only x stack images per EDF
@@ -37,7 +38,7 @@ elif args.Z==9:
     ni=4
 
 Y_EDF = []
-for idx,image_name in enumerate(glob.glob(r"data\EDF\*.png")):
+for idx,image_name in enumerate(sorted(glob.glob(r"data/EDF/*.png"))):
     im = cv2.imread(image_name)
     imnew=cv2.resize(im,(args.img_size,args.img_size))
     Y_EDF.append(imnew)
@@ -45,8 +46,11 @@ for idx,image_name in enumerate(glob.glob(r"data\EDF\*.png")):
 Y_EDF = np.array(Y_EDF)
 
 X_STACKS = []
-for idx,folder_name in enumerate(glob.glob(r"data\*")):
-    if (folder_name!='data\EDF') and (folder_name!='data\labels.csv'):
+for file in enumerate(glob.glob(r"data/*.csv",recursive=True)):
+    print(file)
+for idx,folder_name in enumerate(sorted(glob.glob(r"data/*",recursive=True))):
+    print(folder_name)
+    if (folder_name!='data/EDF') and (folder_name!='data/labels.csv'):
         X_STACKS_per_folder=[]
         for idxx,image_name in enumerate(glob.glob(os.path.join(folder_name, "*.png"))):
             im = cv2.imread(image_name)
@@ -63,9 +67,12 @@ X_STACKS = np.array(X_STACKS)
 X = np.array(X_STACKS)
 Y = np.array(Y_EDF)
 
+print("X.size " + str(X.size))
+print(Y.size)
 # # kfold
 state = np.random.RandomState(1234)
 kfold = KFold(args.folds, shuffle=True, random_state=state)
 folds = [{'train': (X[tr], Y[tr]), 'test': (X[ts], Y[ts])} 
     for tr, ts in kfold.split(X, Y)]
 pickle.dump(folds, open(f'data_cervix93_zstacks.pickle', 'wb'))
+# dump(folds, 'data_cervix93_zstacks.joblib')

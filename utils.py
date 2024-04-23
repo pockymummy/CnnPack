@@ -32,6 +32,8 @@ class ConvLayer(nn.Module):
             self.activation = nn.Tanh()
         elif activation == 'sigmoid':
             self.activation = nn.Sigmoid()
+        elif activation == 'elu':
+            self.activation = nn.ELU(inplace=True)
         elif activation == 'linear':
             self.activation = lambda x : x
         else:
@@ -44,8 +46,11 @@ class ConvLayer(nn.Module):
             raise NotImplementedError("Not expected normalization flag !!!")
 
     def forward(self, x):
+        # print("Start x", x.shape)
         x = self.pad(x)
+        # print("Pad x", x.shape)
         x = self.conv_layer(x)
+        # print("Conv x", x.shape)
         x = self.normalization(x)
         x = self.activation(x)        
         return x
@@ -65,7 +70,8 @@ class ResidualLayer(nn.Module):
         
     def forward(self, x):
         y = self.conv1(x)
-        return self.conv2(y) + x
+        z = self.conv2(y) + x
+        return z
         
     
 class DeconvLayer(nn.Module):    
@@ -106,6 +112,50 @@ class DeconvLayer(nn.Module):
         x = self.conv(x)
         x = self.normalization(x)        
         x = self.activation(x)
+        return x
+    
+
+class ConvPackLayer(nn.Module):    
+    def __init__(self, in_ch, out_ch, kernel_size, stride, pad='reflect', activation='relu', normalization='instance'):        
+        super(ConvLayer, self).__init__()
+        
+        # padding
+        if pad == 'reflect':            
+            self.pad = nn.ReflectionPad2d(kernel_size//2)
+        elif pad == 'zero':
+            self.pad = nn.ZeroPad2d(kernel_size//2)
+        else:
+            raise NotImplementedError("Not expected pad flag !!!")
+    
+            
+        # convolution
+        self.conv_layer = nn.Conv2d(in_ch, out_ch, 
+                                    kernel_size=kernel_size,
+                                    stride=stride)
+        
+        # activation
+        if activation == 'relu':
+            self.activation = nn.ReLU()        
+        elif activation == 'tanh':
+            self.activation = nn.Tanh()
+        elif activation == 'sigmoid':
+            self.activation = nn.Sigmoid()
+        elif activation == 'linear':
+            self.activation = lambda x : x
+        else:
+            raise NotImplementedError("Not expected activation flag !!!")
+
+        # normalization 
+        if normalization == 'instance':            
+            self.normalization = nn.InstanceNorm2d(out_ch, affine=True)
+        else:
+            raise NotImplementedError("Not expected normalization flag !!!")
+
+    def forward(self, x):
+        x = self.pad(x)
+        x = self.conv_layer(x)
+        x = self.normalization(x)
+        x = self.activation(x)        
         return x
 
 
